@@ -1,24 +1,31 @@
-#include <Servo.h>
+//#include <Servo.h> //for servo
 
-Servo myservo;
+#define brkpin 2
 
-float trk = 0;
-float loc = 0;
+//Servo brkSrvo; // for servo
+
+float trk;
+float loc;
+float decel;
+float spd;
 
 
 void setup() {
+  pinMode(13, OUTPUT);
   digitalWrite(13, HIGH);
-  myservo.attach(9);
-
-  // put your setup code here, to run once:
+  pinMode(brkpin, OUTPUT);
+  //brkSrvo.attach(brkpin); //for servo
+  Serial.print("Enter track Length");
 
 }
 
 void loop() {
-  myservo.write(0);
-  delay(2000);
-  myservo.write(180);
-  delay(2000);
-  // put your main code here, to run repeatedly:
+  if (trk - loc <= decel * spd) {
+    stp();
+  }
+}
 
+void stp() {
+  digitalWrite(brkpin, HIGH);
+  //brkSrvo.write(180)  //for servo
 }
