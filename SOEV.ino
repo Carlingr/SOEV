@@ -1,5 +1,5 @@
 #define brkpin 10
-#define tachpin 2
+#define tachpin 3
 
 // This is the library for the TB6612 that contains the class Motor and all the
 // functions
@@ -36,6 +36,7 @@ unsigned long lastTach;
 unsigned long thisTach;
 
 void setup() {
+  Serial.begin(9600);
   pinMode(13, OUTPUT);
   digitalWrite(13, HIGH);
   pinMode(brkpin, OUTPUT);
@@ -45,19 +46,9 @@ void setup() {
 }
 
 void loop() {
-  //Use of the forward function, which takes as arguements two motors
-  //and optionally a speed.  If a negative number is used for speed
-  //it will go backwards
-  forward(motor1, motor2, 150);
-  delay(1000);
-
-  //Use of the back function, which takes as arguments two motors
-  //and optionally a speed.  Either a positive number or a negative
-  //number for speed will cause it to go backwards
-  back(motor1, motor2, -150);
-  delay(1000);
-
-  if (trk - loc <= decel * spd) {
+  motor2.drive(255, 1000);
+  Serial.println(spd);
+  if (millis() > 5000) {
     stp();
   }
   tachCount();
@@ -65,6 +56,7 @@ void loop() {
 
 void stp() {
   digitalWrite(brkpin, HIGH);
+  motor2.brake();
 }
 
 void tachLog() {
@@ -72,10 +64,12 @@ void tachLog() {
 }
 
 void tachCount() {
-  if (thisTach - lastTach < 65535) {//65535 is the max value if an unsigned int
-    unsigned int timeDif = (thisTach - lastTach);
-    spd = 1822 / timeDif * 100; //cm/ms, //1.82212373908208 = dist, //* 100 is to avoid floating point stuff
+  if (!(thisTach = lastTach)) {
+    if (thisTach - lastTach < 65535) {//65535 is the max value if an unsigned int, keeps from overflow problems
+      unsigned int timeDif = (thisTach - lastTach);
+      spd = 1822 / timeDif; //cm/ms, //1.82212373908208 = dist
+    }
+    loc += spd * (thisTach - lastTach);
+    lastTach = thisTach;
   }
-  lastTach = thisTach;
-  thisTach = 0;
 }
