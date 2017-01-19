@@ -36,12 +36,14 @@ unsigned long lastTach;
 unsigned long thisTach;
 
 void setup() {
-  Serial.begin(9600);
-  pinMode(13, OUTPUT);
+  //<turn on 13 to show init>
+  pinMode(13, OUTPUT); 
   digitalWrite(13, HIGH);
+  //</turn on 13 to show init>
   pinMode(brkpin, OUTPUT);
   pinMode(tachpin, INPUT);
   attachInterrupt(0, tachLog, RISING);
+  Serial.begin(9600); //start a serial port for debugging and loading track length
   Serial.print("Enter track Length");
 }
 
