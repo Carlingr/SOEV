@@ -2,11 +2,14 @@
 // #define is good for IO pins because #define and IO pins are both hard wiring
 #define brkpin 10
 #define tachpin 3
+<<<<<<< HEAD
 //</define the IO pins for easier Refrencce>
 
 //<Init Motor Drivers>
 // Creadit where cedit is due - This was copied and pasted from the Sparkfun Hookup Guide
 //https://github.com/sparkfun/SparkFun_TB6612FNG_Arduino_Library/blob/master/examples/MotorTestRun/MotorTestRun.ino
+=======
+>>>>>>> origin/master
 
 // This is the library for the TB6612 that contains the class Motor and all the
 // functions
@@ -50,6 +53,7 @@ unsigned long thisTach;
 //</Init Variables>
 
 void setup() {
+<<<<<<< HEAD
   //<turn on LED 13 to signify init>
   pinMode(13, OUTPUT);
   digitalWrite(13, HIGH);
@@ -81,6 +85,31 @@ void loop() {
     prop.brake(); //brake the motors
     digitalWrite(brkpin, HIGH); //fire the solenoids
   }
+=======
+  //<turn on 13 to show init>
+  pinMode(13, OUTPUT); 
+  digitalWrite(13, HIGH);
+  //</turn on 13 to show init>
+  pinMode(brkpin, OUTPUT);
+  pinMode(tachpin, INPUT);
+  attachInterrupt(0, tachLog, RISING);
+  Serial.begin(9600); //start a serial port for debugging and loading track length
+  Serial.print("Enter track Length");
+}
+
+void loop() {
+  motor2.drive(255, 1000);
+  Serial.println(spd);
+  if (millis() > 5000) {
+    stp();
+  }
+  tachCount();
+}
+
+void stp() {
+  digitalWrite(brkpin, HIGH);
+  motor2.brake();
+>>>>>>> origin/master
 }
 
 void tachLog() {//interrupt for tachometer
@@ -89,6 +118,7 @@ void tachLog() {//interrupt for tachometer
 }
 
 void tachCount() {
+<<<<<<< HEAD
   //<local variables>
   //I use local variables so that if tachcount is called in the middle of the function it wont make the maths go poof.
   unsigned long lclLast = lastTach;
@@ -98,5 +128,14 @@ void tachCount() {
   if (!(lclThis == thisTach) {//if tachLog has been called since we started
   tachCount();//do this function again
     //I love recursion
+=======
+  if (!(thisTach = lastTach)) {
+    if (thisTach - lastTach < 65535) {//65535 is the max value if an unsigned int, keeps from overflow problems
+      unsigned int timeDif = (thisTach - lastTach);
+      spd = 1822 / timeDif; //cm/ms, //1.82212373908208 = dist
+    }
+    loc += spd * (thisTach - lastTach);
+    lastTach = thisTach;
+>>>>>>> origin/master
   }
 }
