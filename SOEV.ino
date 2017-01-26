@@ -1,6 +1,5 @@
-//<define the IO pins for easier Refrencce>
-// #define is good for IO pins because #define and IO pins are both hard wiring
 #define brkpin 10
+<<<<<<< HEAD
 #define tachpin 3
 <<<<<<< HEAD
 //</define the IO pins for easier Refrencce>
@@ -10,6 +9,9 @@
 //https://github.com/sparkfun/SparkFun_TB6612FNG_Arduino_Library/blob/master/examples/MotorTestRun/MotorTestRun.ino
 =======
 >>>>>>> origin/master
+=======
+#define tachpin 2
+>>>>>>> parent of b60f1d8... Added Motor Driver to fritzing, commented code, +
 
 // This is the library for the TB6612 that contains the class Motor and all the
 // functions
@@ -35,56 +37,47 @@ const int offsetB = 1;
 // motors as you have memory for.  If you are using functions like forward
 // that take 2 motors as arguements you can either write new functions or
 // call the function more than once.
-Motor prop = Motor(AIN1, AIN2, PWMA, offsetA, STBY);
-Motor turn = Motor(BIN1, BIN2, PWMB, offsetB, STBY);
-//</Init Motor Drivers>
+Motor motor1 = Motor(AIN1, AIN2, PWMA, offsetA, STBY);
+Motor motor2 = Motor(BIN1, BIN2, PWMB, offsetB, STBY);
 
-//<Init Variables>
-//Floats are evil due to slow computation speeds. AVOID!
 unsigned long trk; //use cm
 unsigned long loc; //use cm
-const unsigned long decel; //use cm*(cm/ms)
-unsigned long spd; //speed in cm/ms
-//<used by tachometer>
-//global becuase they are used in tachLog() and tachCount()
+unsigned long decel; //use
+float spd; //speed in cm/second
 unsigned long lastTach;
 unsigned long thisTach;
-//<used by tachCount Function>
-//</Init Variables>
 
 void setup() {
 <<<<<<< HEAD
+<<<<<<< HEAD
   //<turn on LED 13 to signify init>
+=======
+>>>>>>> parent of b60f1d8... Added Motor Driver to fritzing, commented code, +
   pinMode(13, OUTPUT);
   digitalWrite(13, HIGH);
-  //</turn on LED 13 to signify init>
-  //<pin Modes>
   pinMode(brkpin, OUTPUT);
   pinMode(tachpin, INPUT);
-  //</pin Modes>
-  attachInterrupt(0, tachLog, RISING); //if the tachpin is pulled high (the light shines through the holes in the wheels)
-  //Interrupt is used becuase the code may miss it if it is only called during loop
-  prop.drive(255); //turn the motor on
-  Serial.println("trk,loc,spd,lastTach,thisTach"); //tells the order of the variables when printed
+  attachInterrupt(0, tachLog, RISING);
+  Serial.print("Enter track Length");
 }
 
 void loop() {
-  //<log all the variables for debuging>
-  Serial.print(trk);
-  Serial.print(",");
-  Serial.print(loc);
-  Serial.print(",");
-  Serial.print(spd);
-  Serial.print(",");
-  Serial.print(lastTach);
-  Serial.print(",");
-  Serial.println(thisTach);
-  //</log all the variable for debugging>
-  tachCount();// do the tach maths
-  if (trk - loc <= decel * spd) { //if we are running out of track
-    prop.brake(); //brake the motors
-    digitalWrite(brkpin, HIGH); //fire the solenoids
+  //Use of the forward function, which takes as arguements two motors
+  //and optionally a speed.  If a negative number is used for speed
+  //it will go backwards
+  forward(motor1, motor2, 150);
+  delay(1000);
+
+  //Use of the back function, which takes as arguments two motors
+  //and optionally a speed.  Either a positive number or a negative
+  //number for speed will cause it to go backwards
+  back(motor1, motor2, -150);
+  delay(1000);
+
+  if (trk - loc <= decel * spd) {
+    stp();
   }
+<<<<<<< HEAD
 =======
   //<turn on 13 to show init>
   pinMode(13, OUTPUT); 
@@ -103,21 +96,26 @@ void loop() {
   if (millis() > 5000) {
     stp();
   }
+=======
+>>>>>>> parent of b60f1d8... Added Motor Driver to fritzing, commented code, +
   tachCount();
 }
 
 void stp() {
   digitalWrite(brkpin, HIGH);
+<<<<<<< HEAD
   motor2.brake();
 >>>>>>> origin/master
+=======
+>>>>>>> parent of b60f1d8... Added Motor Driver to fritzing, commented code, +
 }
 
-void tachLog() {//interrupt for tachometer
-  lastTach = thisTach;//move thisTach into lastTach to make room for the new reading
-  thisTach = millis();// get the new reading
+void tachLog() {
+  thisTach = millis();
 }
 
 void tachCount() {
+<<<<<<< HEAD
 <<<<<<< HEAD
   //<local variables>
   //I use local variables so that if tachcount is called in the middle of the function it wont make the maths go poof.
@@ -137,5 +135,12 @@ void tachCount() {
     loc += spd * (thisTach - lastTach);
     lastTach = thisTach;
 >>>>>>> origin/master
+=======
+  if (thisTach - lastTach < 65535) {//65535 is the max value if an unsigned int
+    unsigned int timeDif = (thisTach - lastTach);
+    spd = 1822 / timeDif * 100; //cm/ms, //1.82212373908208 = dist, //* 100 is to avoid floating point stuff
+>>>>>>> parent of b60f1d8... Added Motor Driver to fritzing, commented code, +
   }
+  lastTach = thisTach;
+  thisTach = 0;
 }
