@@ -1,9 +1,13 @@
+unsigned long trk = 1000; //use cm
+#define threshold 120
+
 //<define the IO pins for easier Refrencce>
+//2=A,3=B
 // #define is good for IO pins because #define and IO pins are both hard wiring
 #define brkpin 10
 #define tachpin 3
-#define wedge 1822 //distance around wheel between inturrupts, =1.82212373908208, * 100 to avoid floating point
 //</define the IO pins for easier Refrencce>
+#define wedge 10.35 //distance around wheel between inturrupts, ~4.14cm, 
 
 //<Init Motor Drivers>
 // Creadit where cedit is due - This was copied and pasted from the Sparkfun Hookup Guide
@@ -23,45 +27,28 @@
 #define PWMB 6
 #define STBY 9
 
-// these constants are used to allow you to make your motor configuration
-// line up with function names like forward.  Value can be 1 or -1
-const int offsetA = 1;
-const int offsetB = 1;
-
 // Initializing motors.  The library will allow you to initialize as many
 // motors as you have memory for.  If you are using functions like forward
 // that take 2 motors as arguements you can either write new functions or
 // call the function more than once.
-Motor A = Motor(AIN1, AIN2, PWMA, offsetA, STBY);
-Motor B = Motor(BIN1, BIN2, PWMB, offsetB, STBY);
+Motor A = Motor(AIN1, AIN2, PWMA, -1, STBY);//this runs forwards
+Motor B = Motor(BIN1, BIN2, PWMB, 1, STBY);//this runs backwards
 //</Init Motor Drivers>
 
 //<Init Variables>
 //Floats are evil due to slow computation speeds. AVOID!
-unsigned long trk; //use cm
-unsigned long loc; //use cm
-const unsigned long decel = 0; //use cm*(cm/ms)
-unsigned long spd; //speed in cm/ms
-//<used by tachometer>
-//global becuase they are used in tachLog() and tachCount()
-volatile unsigned long lastTach2;
-volatile unsigned long thisTach2;
-volatile unsigned long lastTach3;
-volatile unsigned long thisTach3;
-//<used by tachCount Function>
-//<Speed used by motors>
-byte Aspd = 255; //Start Motor a @ 255
-byte Bspd = 255; //Start Motor B @255
-//<speed used by motors>
-//<used by tachcount, global for efficiency>
-unsigned long lclLast;
-unsigned long lclThis;
-unsigned long spd2;
-unsigned long spd3;
-//</used by tachcount, global for efficiency>
+volatile float loc; //use cm
+byte spd; //Speed used by motors
+#define PHOTO_PIN_1 A0
+#define LEDS_PIN 2
 //</Init Variables>
 
+
 void setup() {
+  pinMode(LEDS_PIN, OUTPUT);
+  // Turn on output LEDs
+  digitalWrite(LEDS_PIN, HIGH);
+  Serial.begin(250000);//Start Serial
   //<turn on LED 13 to signify init>
   pinMode(13, OUTPUT);
   digitalWrite(13, HIGH);
@@ -70,104 +57,40 @@ void setup() {
   pinMode(brkpin, OUTPUT);
   pinMode(tachpin, INPUT);
   //</pin Modes>
-  Serial.begin(300);//Start Serial
-  //DO NOT PUT PARENTHESES AFTER ISR!
-  attachInterrupt(digitalPinToInterrupt(2), tachLog2, RISING); //if the tachpin is pulled high (the light shines through the holes in the wheels),
-  attachInterrupt(digitalPinToInterrupt(3), tachLog3, RISING); //if the tachpin is pulled high (the light shines through the holes in the wheels)
-  //Interrupt is used becuase the code may miss it if it is only called during loop
-  A.drive(Aspd); //turn the motor on
-  B.drive(Bspd); //turn the motor on
-  Serial.println("trk,loc,spd,lastTach2,thisTach2,lastTach3,thisTach3,Aspd,Bspd"); //tells the order of the variables when printed
+  A.drive(spd); //turn the motor on
+  B.drive(spd); //turn the motor on
+  digitalWrite(13, LOW);
 }
 
 void loop() {
+  if (analogRead(PHOTO_PIN_1) > 120) {
+    loc += wedge;
+    while (analogRead(PHOTO_PIN_1) > 120) {
+      Serial.print(analogRead(PHOTO_PIN_1));
+      Serial.println("holding");
+    }
+  }
   //<Do this every time the code runs>
   //*<log all the variables for debuging>
-  Serial.print(trk);
+  Serial.print(millis());
   Serial.print(",");
   Serial.print(loc);
   Serial.print(",");
-  Serial.print(spd);
+  Serial.print(analogRead(PHOTO_PIN_1));
   Serial.print(",");
-  Serial.print(lastTach2);
-  Serial.print(",");
-  Serial.println(thisTach2);
-  Serial.print(",");
-  Serial.print(lastTach3);
-  Serial.print(",");
-  Serial.println(thisTach3);
-  Serial.print(",");
-  Serial.print(Aspd);
-  Serial.print(",");
-  Serial.println(Bspd);
+  Serial.println(spd);
   //</log all the variable for debugging>*/
-  tachCount2();// do the tach maths for one side
-  tachCount3();// and the other side
   //</Do this every time the code runs>
   //<Only if we are stopping>
-  if (trk - loc <= decel * spd) { //if we are running out of track
+  if (loc >= trk) { //if we are running out of track //SHOULD BE trk - loc <= decel * spd
     Serial.print("Break");
     A.brake(); //brake the motors
     B.brake(); //brake the motors
     digitalWrite(brkpin, HIGH); //fire the solenoids
     //</Only if we are stopping>
-    //<if there is track left>
-  } else {
-    //<set the motor Speeds>
-    if (spd2 > spd3) {//if motor A is going faster
-      Aspd--;//slow it down
-    } else if (spd2 < spd3) { //guess
-      Bspd--;//Just guess
-    }//I hope you cant miss
-    //here it gets interesting
-    //<make sure the motors are a full speed>
-    if (Aspd <= Bspd && Bspd < 255) { //if Bspeed is the highest one, and there is room to raise it
-      Aspd += 255 - Bspd; //increase Aspd by the difference between Bspd and the maximum possible value
-      Bspd += 255 - Bspd; //Look up, and guess
-    } else if (Bspd <= Aspd && Aspd < 255) { ///if Aspeed is the highest one, and there is room to raise it
-      Aspd += 255 - Aspd; //increase ABspd by the difference between Bspd and the maximum possible value
-      Bspd += 255 - Aspd; //There is one difference, do you see it?
-    }
-    //</make sure the motors are a full speed>
-    //</Set the motor Speeds>
-    A.drive(Aspd); //turn the motor on
-    B.drive(Bspd); //turn the motor on
+  } else { //<if there is track left>
+    A.drive(spd); //turn the motor on
+    B.drive(spd); //turn the motor on
   }
   //</if there is track left>
-}
-
-void tachLog2() {//interrupt for tachometer
-  lastTach2 = thisTach2;//move thisTach into lastTach to make room for the new reading
-  thisTach2 = millis();// get the new reading
-}
-
-void tachLog3() { //interrupt for tachometer
-  lastTach3 = thisTach3;//move thisTach into lastTach to make room for the new reading
-  thisTach3 = millis();// get the new reading
-}
-
-void tachCount2() {
-  //<local variables>
-  //I use local variables so that if tachcount is called in the middle of the function it wont make the maths go poof.
-  lclLast = lastTach2;
-  lclThis = thisTach2;
-  //</local Variables>
-  spd2 = wedge / (lclThis - lclLast) * 100; //cm/ms, //wedge = dist, //* 100 is to avoid floating point stuff
-  if (!(lclThis == thisTach2)) {//if tachLog1 has been called since we started
-    tachCount2();//do this function again
-    //I love recursion
-  }
-}
-
-void tachCount3() {
-  //<local variables>
-  //I use local variables so that if tachcount is called in the middle of the function it wont make the maths go poof.
-  lclLast = lastTach3;
-  lclThis = thisTach3;
-  //</local Variables>
-  spd3 = wedge / (lclThis - lclLast) * 100; //cm/ms, //wedge = dist, //* 100 is to avoid floating point stuff
-  if (!(lclThis == thisTach2)) {//if tachLog1 has been called since we started
-    tachCount3();//do this function again
-    //I love recursion
-  }
 }
